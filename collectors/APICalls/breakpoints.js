@@ -49,6 +49,9 @@ const breakpoints = [
                 description: 'window.matchMedia("pointer")',
                 condition: 'arguments.length > 0 && arguments[0].includes("pointer")',
                 test: 'window.matchMedia("(pointer: fine)")'
+            },
+            {
+                name: 'getSelection'
             }
         ]
     },
@@ -120,7 +123,8 @@ const breakpoints = [
             // {name: 'timeline'}, - not in Chromium
         ],
         methods: [
-            {name: 'interestCohort'} // FLoC
+            {name: 'interestCohort'}, // FLoC
+            {name: 'getSelection'}
         ]
     },
     {

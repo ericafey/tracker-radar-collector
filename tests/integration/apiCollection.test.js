@@ -53,6 +53,7 @@ async function main() {
         "Gyroscope.prototype.z",
         // method calls
         "Document.prototype.interestCohort",
+        "Document.prototype.getSelection",
         'HTMLCanvasElement.prototype.constructor',
         'HTMLCanvasElement.prototype.toBlob',
         'CanvasRenderingContext2D.prototype.isPointInPath',
@@ -77,6 +78,7 @@ async function main() {
         'window.matchMedia("prefers-reduced-motion")',
         'window.matchMedia("color-gamut")',
         'window.matchMedia("pointer")',
+        'window.getSelection'
     ];
 
     breakpoints.forEach(object => {
