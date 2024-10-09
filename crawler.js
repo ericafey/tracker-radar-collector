@@ -232,6 +232,24 @@ async function getSiteData(context, url, {
     await page.waitForTimeout(extraExecutionTimeMs);
 
     const finalUrl = page.url();
+
+    // select header text on the page
+    try{
+        // select the positions of the node
+        const someText = 'h1';
+        const handleTitle = await page.waitForSelector(someText);
+        const box = await handleTitle.boundingBox();
+        // whilst mousedown, move the mouse from the left top corner to the right bottom corner of the node
+        await page.mouse.move(box.x, box.y);
+        await page.mouse.down();
+        await page.mouse.move(box.x + box.width, box.y + box.height);
+        await page.mouse.up();
+        // wait for the script?
+        await page.waitForTimeout(6000);
+    } catch(e) {
+        log("selecting h1 text on page failed", e);
+    }
+
     /**
      * @type {Object<string, Object>}
      */
