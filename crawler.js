@@ -229,26 +229,169 @@ async function getSiteData(context, url, {
     }
 
     // give website a bit more time for things to settle
-    await page.waitForTimeout(extraExecutionTimeMs);
+    await page.waitForTimeout(extraExecutionTimeMs); // TODO increase timeout for script to load
 
     const finalUrl = page.url();
 
-    // select header text on the page
-    try{
-        // select the positions of the node
-        const someText = 'h1';
-        const handleTitle = await page.waitForSelector(someText);
-        const box = await handleTitle.boundingBox();
-        // whilst mousedown, move the mouse from the left top corner to the right bottom corner of the node
-        await page.mouse.move(box.x, box.y);
-        await page.mouse.down();
-        await page.mouse.move(box.x + box.width, box.y + box.height);
-        await page.mouse.up();
-        // wait for the script?
-        await page.waitForTimeout(6000);
-    } catch(e) {
-        log("selecting h1 text on page failed", e);
+
+    /**
+     * 
+     * @param {import('puppeteer').JSHandle} node 
+     * @returns {Promise<number>}
+     */
+    function getOffsetFromNode(node){
+        const offset = page.evaluate((node)=>{
+                return node.textContent.trim().length;
+            },
+        node
+        );
+        return offset;
     }
+
+    /**
+     * 
+     * @param {import('puppeteer').JSHandle} from 
+     * @param {number} offset 
+     */
+    function changeSelectionObject(from, offset){
+        page.evaluate(
+            (from, offset) => {
+            const selection = document.getSelection();
+            const range = document.createRange();
+            range.setStart(from,0);
+            range.setEnd(from,offset);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            },
+            from,
+            offset
+        );
+    }
+
+    // finds the first text node on the page and returns it
+    function findFirstTextNode(){
+        const node = page.evaluateHandle(() => {
+            // Create a NodeIterator to iterate over text nodes
+            const iterator = document.createNodeIterator(
+                document.body,                 // The root node to start searching
+                NodeFilter.SHOW_TEXT,           // Only show text nodes
+                {
+                acceptNode: function(node) {
+                    // Filter out empty text nodes (whitespace)
+                    return node.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+                    }   
+                }
+            );
+            // Get the first non-empty text node
+            const firstTextNode = iterator.nextNode();
+            
+            return firstTextNode;
+        });
+        
+        return node;
+    }
+
+    // /** 
+    //  * @param {import('puppeteer').JSHandle} node 
+    //  */
+    // function getCoordinates(node){
+    //     const coords = page.evaluate(()=>{
+    //         node.parentElement.getBoundingClientRect();
+    //     },
+    //     node
+    //     )
+    //     return coords;
+    // }
+
+    function getBody(){
+        const box = page.evaluate(() => {
+            const rect = document.body.getBoundingClientRect();
+            return {x:rect.x, y:rect.y, width:rect.width, height:rect.height};
+        });
+        return box;
+    }
+
+    /**
+     * Selects the box given
+     * @param {{x: number; y: number; width: number; height: number;}} box 
+     */
+    function selectText(box){
+        try{
+            page.mouse.move(box.x, box.y);
+            page.waitForTimeout(extraExecutionTimeMs);
+            page.mouse.down();
+            page.waitForTimeout(extraExecutionTimeMs);
+            page.mouse.move(box.x + box.width, box.y + box.height); //add steps to look less like a bot?
+            page.waitForTimeout(extraExecutionTimeMs);
+            page.mouse.up();
+        } catch(e){
+            log(chalk.red("selecting with mouse failed"));
+        }
+    }
+
+    // checks whether something is selected on the page
+    function isSelectionSuccess(){
+        const selection = page.evaluate(() => {
+            return document.getSelection().toString();
+        })
+        return selection ? true : false;
+    }
+
+    // read the selection of the page 
+    function returnSelection(){
+        const selection = page.evaluate(() => {
+            return document.getSelection().toString();
+        })
+        return selection;
+    }
+
+    function doMouseUp(){
+        page.evaluate(()=>{
+            const element = document.querySelector('h1');
+            const rect = element.getBoundingClientRect();
+
+            const mouseUpEvent = new MouseEvent('mouseup', {
+                bubbles: true,
+                cancelable: true,
+                clientX: rect.x + 5 + 50, // Same end position as mousemove
+                clientY: rect.y + 5, // Same Y position
+                view: window
+            });
+            element.dispatchEvent(mouseUpEvent);
+        })
+    }
+
+    // START
+    const node = await findFirstTextNode();
+    const offset = await getOffsetFromNode(node);
+    changeSelectionObject(node, offset);
+    await page.waitForTimeout(extraExecutionTimeMs);
+    // const box = await getBody();
+    // selectText(box);
+    doMouseUp();
+    await page.waitForTimeout(extraExecutionTimeMs);
+    const selection = await returnSelection();
+    log(chalk.green(selection));
+    await page.waitForTimeout(5*extraExecutionTimeMs);
+    // const header = 'h1';
+    // const handleHeader = await page.waitForSelector(header);
+    // await page.click(header);
+    // try pressing the button
+    // try{
+    //     const button = 'button'
+    //     const handleButton = await page.waitForSelector(button);
+    //     await handleButton.click()
+    //     await page.waitForTimeout(5*extraExecutionTimeMs); //removing doesnt record selection
+    // } catch(e) {
+    //     log("clicking button failed")
+    // }
+
+    // //time for in recording
+    // await page.waitForTimeout(5*extraExecutionTimeMs);
+    // await handleButton.click()
+
+    // await page.waitForTimeout(5*extraExecutionTimeMs);
+
 
     /**
      * @type {Object<string, Object>}
