@@ -120,6 +120,7 @@ const breakpoints = [
         props: [
             {name: 'cookie', description: 'Document.cookie getter'},
             {name: 'cookie', description: 'Document.cookie setter', setter: true, saveArguments: true},
+            {name: 'selection'}
             // {name: 'timeline'}, - not in Chromium
         ],
         methods: [
