@@ -229,170 +229,70 @@ async function getSiteData(context, url, {
     }
 
     // give website a bit more time for things to settle
-    await page.waitForTimeout(extraExecutionTimeMs); // TODO increase timeout for script to load
+    await page.waitForTimeout(extraExecutionTimeMs);
 
     const finalUrl = page.url();
 
-
-    /**
-     * 
-     * @param {import('puppeteer').JSHandle} node 
-     * @returns {Promise<number>}
-     */
-    function getOffsetFromNode(node){
-        const offset = page.evaluate((node)=>{
-                return node.textContent.trim().length;
-            },
-        node
-        );
-        return offset;
-    }
-
-    /**
-     * 
-     * @param {import('puppeteer').JSHandle} from 
-     * @param {number} offset 
-     */
-    function changeSelectionObject(from, offset){
-        page.evaluate(
-            (from, offset) => {
-            const selection = document.getSelection();
-            const range = document.createRange();
-            range.setStart(from,0);
-            range.setEnd(from,offset);
-            selection.removeAllRanges();
-            selection.addRange(range);
-            },
-            from,
-            offset
-        );
-    }
-
-    // finds the first text node on the page and returns it
-    function findFirstTextNode(){
-        const node = page.evaluateHandle(() => {
-            // Create a NodeIterator to iterate over text nodes
-            const iterator = document.createNodeIterator(
-                document.body,                 // The root node to start searching
-                NodeFilter.SHOW_TEXT,           // Only show text nodes
-                {
-                acceptNode: function(node) {
-                    // Filter out empty text nodes (whitespace)
-                    return node.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
-                    }   
-                }
-            );
-            // Get the first non-empty text node
-            const firstTextNode = iterator.nextNode();
+    function selectText() {
+        page.evaluate(() => {
             
-            return firstTextNode;
-        });
+            // get the node to select and its coordinates
+            const node = document.body
+            const box = node.getBoundingClientRect();
         
-        return node;
-    }
-
-    // /** 
-    //  * @param {import('puppeteer').JSHandle} node 
-    //  */
-    // function getCoordinates(node){
-    //     const coords = page.evaluate(()=>{
-    //         node.parentElement.getBoundingClientRect();
-    //     },
-    //     node
-    //     )
-    //     return coords;
-    // }
-
-    function getBody(){
-        const box = page.evaluate(() => {
-            const rect = document.body.getBoundingClientRect();
-            return {x:rect.x, y:rect.y, width:rect.width, height:rect.height};
-        });
-        return box;
-    }
-
-    /**
-     * Selects the box given
-     * @param {{x: number; y: number; width: number; height: number;}} box 
-     */
-    function selectText(box){
-        try{
-            page.mouse.move(box.x, box.y);
-            page.waitForTimeout(extraExecutionTimeMs);
-            page.mouse.down();
-            page.waitForTimeout(extraExecutionTimeMs);
-            page.mouse.move(box.x + box.width, box.y + box.height); //add steps to look less like a bot?
-            page.waitForTimeout(extraExecutionTimeMs);
-            page.mouse.up();
-        } catch(e){
-            log(chalk.red("selecting with mouse failed"));
-        }
-    }
-
-    // checks whether something is selected on the page
-    function isSelectionSuccess(){
-        const selection = page.evaluate(() => {
-            return document.getSelection().toString();
-        })
-        return selection ? true : false;
-    }
-
-    // read the selection of the page 
-    function returnSelection(){
-        const selection = page.evaluate(() => {
-            return document.getSelection().toString();
-        })
-        return selection;
-    }
-
-    function doMouseUp(){
-        page.evaluate(()=>{
-            const element = document.querySelector('h1');
-            const rect = element.getBoundingClientRect();
-
+            // Create mouse events to simulate the selection
+            const mouseDownEvent = new MouseEvent('mousedown', {
+                bubbles: true,
+                cancelable: true,
+                clientX: box.x,
+                clientY: box.y,
+                view: window
+            });
+            
+            const mouseMoveEvent = new MouseEvent('mousemove', {
+                bubbles: true,
+                cancelable: true,
+                clientX: box.x + box.width,
+                clientY: box.y + box.height,
+                view: window
+            });
+            
             const mouseUpEvent = new MouseEvent('mouseup', {
                 bubbles: true,
                 cancelable: true,
-                clientX: rect.x + 5 + 50, // Same end position as mousemove
-                clientY: rect.y + 5, // Same Y position
+                clientX: box.x + box.width,
+                clientY: box.y + box.height,
                 view: window
             });
-            element.dispatchEvent(mouseUpEvent);
-        })
+            
+            // Dispatch events to the element
+            node.dispatchEvent(mouseDownEvent);
+            node.dispatchEvent(mouseMoveEvent);
+
+            // update Selection object
+            const firstNode = node.firstChild;
+            const lastNode = node.lastChild;
+            const offset = lastNode.textContent.trim().length;
+            
+            const selection = document.getSelection();
+            const range = document.createRange();
+            range.setStart(firstNode,0);
+            range.setEnd(lastNode, offset);
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            // finish the selection
+            node.dispatchEvent(mouseUpEvent);
+        });
     }
 
-    // START
-    const node = await findFirstTextNode();
-    const offset = await getOffsetFromNode(node);
-    changeSelectionObject(node, offset);
-    await page.waitForTimeout(extraExecutionTimeMs);
-    // const box = await getBody();
-    // selectText(box);
-    doMouseUp();
-    await page.waitForTimeout(extraExecutionTimeMs);
-    const selection = await returnSelection();
-    log(chalk.green(selection));
-    await page.waitForTimeout(5*extraExecutionTimeMs);
-    // const header = 'h1';
-    // const handleHeader = await page.waitForSelector(header);
-    // await page.click(header);
-    // try pressing the button
-    // try{
-    //     const button = 'button'
-    //     const handleButton = await page.waitForSelector(button);
-    //     await handleButton.click()
-    //     await page.waitForTimeout(5*extraExecutionTimeMs); //removing doesnt record selection
-    // } catch(e) {
-    //     log("clicking button failed")
-    // }
-
-    // //time for in recording
-    // await page.waitForTimeout(5*extraExecutionTimeMs);
-    // await handleButton.click()
-
-    // await page.waitForTimeout(5*extraExecutionTimeMs);
-
-
+    try{
+        selectText();
+        await page.waitForTimeout(3 * extraExecutionTimeMs);
+    } catch(e) {
+        log(chalk.red("selecting text failed: ", e));
+    }
+    
     /**
      * @type {Object<string, Object>}
      */
