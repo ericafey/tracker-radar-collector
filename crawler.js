@@ -272,12 +272,11 @@ async function getSiteData(context, url, {
             // update Selection object
             const firstNode = node.firstChild;
             const lastNode = node.lastChild;
-            const offset = lastNode.textContent.trim().length;
             
             const selection = document.getSelection();
             const range = document.createRange();
             range.setStart(firstNode,0);
-            range.setEnd(lastNode, offset);
+            range.setEnd(lastNode, 0);
             selection.removeAllRanges();
             selection.addRange(range);
 
