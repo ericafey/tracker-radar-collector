@@ -229,65 +229,72 @@ async function getSiteData(context, url, {
     }
 
     // give website a bit more time for things to settle
-    await page.waitForTimeout(extraExecutionTimeMs);
+    await page.waitForTimeout(2*extraExecutionTimeMs);
 
     const finalUrl = page.url();
 
     function selectText() {
-        page.evaluate(() => {
+        const selection = page.evaluate(() => {
+            try{
+                // get the node to select and its coordinates
+                const node = document.body
+                const box = node.getBoundingClientRect();
             
-            // get the node to select and its coordinates
-            const node = document.body
-            const box = node.getBoundingClientRect();
-        
-            // Create mouse events to simulate the selection
-            const mouseDownEvent = new MouseEvent('mousedown', {
-                bubbles: true,
-                cancelable: true,
-                clientX: box.x,
-                clientY: box.y,
-                view: window
-            });
-            
-            const mouseMoveEvent = new MouseEvent('mousemove', {
-                bubbles: true,
-                cancelable: true,
-                clientX: box.x + box.width,
-                clientY: box.y + box.height,
-                view: window
-            });
-            
-            const mouseUpEvent = new MouseEvent('mouseup', {
-                bubbles: true,
-                cancelable: true,
-                clientX: box.x + box.width,
-                clientY: box.y + box.height,
-                view: window
-            });
-            
-            // Dispatch events to the element
-            node.dispatchEvent(mouseDownEvent);
-            node.dispatchEvent(mouseMoveEvent);
+                // Create mouse events to simulate the selection
+                const mouseDownEvent = new MouseEvent('mousedown', {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: box.x,
+                    clientY: box.y,
+                    view: window
+                });
+                
+                const mouseMoveEvent = new MouseEvent('mousemove', {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: box.x + box.width,
+                    clientY: box.y + box.height,
+                    view: window
+                });
+                
+                const mouseUpEvent = new MouseEvent('mouseup', {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: box.x + box.width,
+                    clientY: box.y + box.height,
+                    view: window
+                });
+                
+                // Start mouse actions
+                node.dispatchEvent(mouseDownEvent);
+                node.dispatchEvent(mouseMoveEvent);
 
-            // update Selection object
-            const firstNode = node.firstChild;
-            const lastNode = node.lastChild;
-            
-            const selection = document.getSelection();
-            const range = document.createRange();
-            range.setStart(firstNode,0);
-            range.setEnd(lastNode, 0);
-            selection.removeAllRanges();
-            selection.addRange(range);
+                // update Selection object
+                const firstNode = node.firstChild;
+                const lastNode = node.lastChild;
+                
+                const selection = document.getSelection();
+                const range = document.createRange();
+                range.setStart(firstNode,0);
+                range.setEnd(lastNode, 0);  
+                selection.removeAllRanges();
+                selection.addRange(range);
 
-            // finish the selection
-            node.dispatchEvent(mouseUpEvent);
+                // finish with mouseup
+                node.dispatchEvent(mouseUpEvent);
+            } catch(e){
+                console.error(e);
+            }
+            return document.getSelection().toString();
         });
+        return selection;
     }
 
+    let selection = "";
     try{
-        selectText();
-        await page.waitForTimeout(3 * extraExecutionTimeMs);
+        selection = await selectText();
+        // log(selection);
+        await page.waitForTimeout(3*extraExecutionTimeMs);
     } catch(e) {
         log(chalk.red("selecting text failed: ", e));
     }
@@ -296,6 +303,7 @@ async function getSiteData(context, url, {
      * @type {Object<string, Object>}
      */
     const data = {};
+    data["selectedText"] = selection;
 
     for (let collector of collectors) {
         const getDataTimer = createTimer();
@@ -360,7 +368,7 @@ module.exports = async (url, options) => {
 
     let data = null;
 
-    const maxLoadTimeMs = options.maxLoadTimeMs || 30000;
+    const maxLoadTimeMs = options.maxLoadTimeMs || 600000;
     const extraExecutionTimeMs = options.extraExecutionTimeMs || 2500;
     const maxTotalTimeMs = maxLoadTimeMs * 2;
 
