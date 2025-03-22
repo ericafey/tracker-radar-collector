@@ -301,7 +301,8 @@ class TrackerTracker {
 
         const breakpoint = this._getBreakpointByDescription(payload.description);
         if (!breakpoint) {
-            this._log('️⚠️ unknown breakpoint', params);
+            // this._log('️⚠️ unknown breakpoint description', payload.description);
+            // this._log('️⚠️ unknown breakpoint', params);
             return null;
         }
 
@@ -336,7 +337,8 @@ class TrackerTracker {
         const breakpointId = params.hitBreakpoints[0];
         const breakpoint = this._getBreakpointById(breakpointId);
         if (!breakpoint) {
-            this._log('️⚠️ unknown breakpoint', params);
+            // this._log('️⚠️ unknown breakpoint breakpointId', breakpointId);
+            // this._log('️⚠️ unknown breakpoint', params);
             return null;
         }
 

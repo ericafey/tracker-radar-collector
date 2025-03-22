@@ -135,7 +135,8 @@ class APICallCollector extends BaseCollector {
         const breakpoint = trackerTracker.processDebuggerPause(params);
         if (!breakpoint) {
             // it's not a breakpoint we care about
-            this._log(`Unknown breakpoint detected. ${params.hitBreakpoints}`);
+            // this._log(`Unknown breakpoint detected`);
+            // this._log(`Unknown breakpoint detected. ${params.hitBreakpoints}`);
         }
 
         if (breakpoint && breakpoint.source && breakpoint.description) {

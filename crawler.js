@@ -229,18 +229,19 @@ async function getSiteData(context, url, {
     }
 
     // give website a bit more time for things to settle
-    await page.waitForTimeout(2*extraExecutionTimeMs);
+    await page.waitForTimeout(2 * extraExecutionTimeMs);
 
     const finalUrl = page.url();
 
     function selectText() {
         const selection = page.evaluate(() => {
             try{
-                // get the node to select and its coordinates
-                const node = document.body
+                // choose the node to select, and get its coordinates
+                // const node = document.body; //
+                const node = document.querySelector("p");
                 const box = node.getBoundingClientRect();
             
-                // Create mouse events to simulate the selection
+                // create mouse events to simulate the selection
                 const mouseDownEvent = new MouseEvent('mousedown', {
                     bubbles: true,
                     cancelable: true,
@@ -265,7 +266,7 @@ async function getSiteData(context, url, {
                     view: window
                 });
                 
-                // Start mouse actions
+                // start mouse actions
                 node.dispatchEvent(mouseDownEvent);
                 node.dispatchEvent(mouseMoveEvent);
 
@@ -276,13 +277,13 @@ async function getSiteData(context, url, {
                 const selection = document.getSelection();
                 const range = document.createRange();
                 range.setStart(firstNode,0);
-                range.setEnd(lastNode, 0);  
+                range.setEnd(lastNode, 0);
                 selection.removeAllRanges();
                 selection.addRange(range);
 
                 // finish with mouseup
                 node.dispatchEvent(mouseUpEvent);
-            } catch(e){
+            } catch(e) {
                 console.error(e);
             }
             return document.getSelection().toString();
@@ -290,11 +291,11 @@ async function getSiteData(context, url, {
         return selection;
     }
 
+    // select text and store the selection
     let selection = "";
     try{
         selection = await selectText();
-        // log(selection);
-        await page.waitForTimeout(3*extraExecutionTimeMs);
+        await page.waitForTimeout(3 * extraExecutionTimeMs);
     } catch(e) {
         log(chalk.red("selecting text failed: ", e));
     }
@@ -303,6 +304,8 @@ async function getSiteData(context, url, {
      * @type {Object<string, Object>}
      */
     const data = {};
+
+    // add selected text to the output data
     data["selectedText"] = selection;
 
     for (let collector of collectors) {
