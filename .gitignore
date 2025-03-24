@@ -3,6 +3,5 @@ node_modules
 .vscode/
 data/
 summary.json
-collect.sh
 analysis/
 .gitignore
