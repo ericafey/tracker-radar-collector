@@ -3,7 +3,7 @@
 # Output directories: for all pages with a script calling getSelection > without null (my own) scripts > without recaptcha scripts
 mkdir "analysis/all"
 mkdir "analysis/no-nulls" 
-mkdir "analysis/no_nulls_recaptcha" 
+mkdir "analysis/no-nulls-recaptcha" 
 
 # Count the number of pages successfully crawled
 count_successful_crawls(){
@@ -37,7 +37,7 @@ collect_10k_results(){
 
   # Iterate over crawl output
   for i in {1..20}; do
-    for f in data/10k-urls/$i/*; do
+    for f in data/10k/$i/*; do
       if [[ $(contains_getSelection $f) == "True" ]]; then
         echo $f >> "$output_name-urls.txt"
         cp $f $output_name
@@ -82,7 +82,7 @@ analyse(){
     # Stores and prints collected analysis data
     printf "%s\n" "$apis" >> "analysis/all-apis.txt"
     store_file_data $nr_no_nulls "no-nulls" "$apis" $f
-    store_file_data $nr_no_nulls_recaptcha "no_nulls_recaptcha" "$apis" $f
+    store_file_data $nr_no_nulls_recaptcha "no-nulls-recaptcha" "$apis" $f
   done
 }
 
